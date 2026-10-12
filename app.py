@@ -1,6 +1,9 @@
 from flask import Flask, render_template, request
 from werkzeug.utils import secure_filename
 import os
+import json
+import requests
+import uuid
 
 app = Flask(__name__)
 
@@ -11,6 +14,9 @@ app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL_NAME = "qwen2.5vl:3b"
 
 
 def allowed_file(filename):
@@ -32,25 +38,66 @@ def generate():
 
     photo = request.files["photo"]
 
-    if photo.filename == "":
-        return "Please select a photo.", 400
+    if not photo.filename or not allowed_file(photo.filename):
+        return "Please upload a JPG, PNG or WEBP image.", 400
 
-    if not allowed_file(photo.filename):
-        return "Upload a JPG, PNG, or WEBP image.", 400
-
-    filename = secure_filename(photo.filename)
-    filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+    filename = str(uuid.uuid4()) + "_" + secure_filename(photo.filename)
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
     photo.save(filepath)
 
-    # Temporary demo results.
-    # We will connect real AI image analysis next.
-    result = {
-        "caption": "Little moments, beautiful memories ✨",
-        "hashtags": "#SnapVoice #PhotoOfTheDay #Memories",
-        "description": "Your photo is ready for its story.",
-        "song": "Suggested mood: chill and feel-good",
-        "image": "/" + filepath.replace("\\", "/"),
-    }
+    style = request.form.get("style", "natural")
+    image_path = "/" + filepath.replace("\\", "/")
+
+    try:
+        import base64
+
+        with open(filepath, "rb") as image_file:
+            image_data = base64.b64encode(image_file.read()).decode("utf-8")
+
+        prompt = f"""
+        Analyse the actual image carefully.
+        Write in this style: {style}.
+
+        Return valid JSON only with these keys:
+        caption: a suitable social media caption
+        hashtags: 5 to 10 relevant hashtags
+        description: a factual description of the visible image
+        mood: the likely mood of the image
+        song: a suitable music genre or song suggestion
+
+        Do not invent objects or activities that are not visible.
+        If uncertain, be cautious.
+        """
+
+        response = requests.post(
+            OLLAMA_URL,
+            json={
+                "model": MODEL_NAME,
+                "prompt": prompt,
+                "images": [image_data],
+                "stream": False,
+                "format": "json"
+            },
+            timeout=180
+        )
+        response.raise_for_status()
+
+        ai_text = response.json()["response"]
+        result = json.loads(ai_text)
+        result["image"] = image_path
+
+    except requests.exceptions.ConnectionError:
+        result = {
+            "error": "AI is not connected. Start Ollama on your laptop and try again."
+        }
+    except requests.exceptions.Timeout:
+        result = {
+            "error": "AI took too long to respond. Please try again."
+        }
+    except (requests.RequestException, ValueError, KeyError):
+        result = {
+            "error": "Could not analyse this photo. Check your AI model and try again."
+        }
 
     return render_template("index.html", result=result)
 
