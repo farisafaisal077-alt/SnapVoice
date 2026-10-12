@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapVoice | AI Photo Studio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <header class="navbar">
+        <a href="/" class="logo">Snap<span>Voice.</span></a>
+        <span class="tagline">YOUR PHOTO, YOUR VOICE</span>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <p class="eyebrow">✦ YOUR PERSONAL AI CREATIVE STUDIO</p>
+            <h1>Every photo has a story.<br>
+                <span>Find your words.</span>
+            </h1>
+            <p class="intro">
+                Turn your favourite moments into captions, hashtags,
+                descriptions and music suggestions with AI.
+            </p>
+        </section>
+
+        <section class="studio">
+            <h2>Create your post</h2>
+            <p class="muted">Upload a photo to get started.</p>
+
+            <form action="/generate" method="POST"
+                  enctype="multipart/form-data">
+
+                <label for="photo" class="upload-box">
+                    <span class="upload-icon">＋</span>
+                    <strong>Choose your photo</strong>
+                    <span class="muted">JPG, PNG or WEBP · Max 10 MB</span>
+                    <input type="file" id="photo" name="photo"
+                           accept="image/jpeg,image/png,image/webp" required>
+                </label>
+
+                <label for="style" class="field-label">
+                    Choose your writing style
+                </label>
+
+                <select name="style" id="style">
+                    <option value="natural and effortless">
+                        Natural & effortless
+                    </option>
+                    <option value="aesthetic and poetic">
+                        Aesthetic & poetic
+                    </option>
+                    <option value="funny and playful">
+                        Funny & playful
+                    </option>
+                    <option value="short and minimal">
+                        Short & minimal
+                    </option>
+                </select>
+
+                <button type="submit">Analyse my photo ✨</button>
+            </form>
+        </section>
+
+        {% if result %}
+        <section class="results">
+            {% if result.error %}
+                <h2>Unable to analyse photo</h2>
+                <p>{{ result.error }}</p>
+            {% else %}
+                <h2>Your SnapVoice results</h2>
+
+                {% if result.image %}
+                    <img class="preview" src="{{ result.image }}"
+                         alt="Your uploaded photo">
+                {% endif %}
+
+                <article class="result-card">
+                    <h3>✍️ Caption</h3>
+                    <p>{{ result.caption }}</p>
+                </article>
+
+                <article class="result-card">
+                    <h3># Hashtags</h3>
+                    <p>{{ result.hashtags }}</p>
+                </article>
+
+                <article class="result-card">
+                    <h3>◎ Photo description</h3>
+                    <p>{{ result.description }}</p>
+                </article>
+
+                <article class="result-card">
+                    <h3>♫ Song suggestion</h3>
+                    <p>{{ result.song }}</p>
+                    {% if result.mood %}
+                        <p><strong>Photo mood:</strong> {{ result.mood }}</p>
+                    {% endif %}
+                </article>
+            {% endif %}
+        </section>
+        {% endif %}
+    </main>
+
+    <footer>
+        SnapVoice · Created by our student project team
+    </footer>
+
+    <script>
+        const photoInput = document.getElementById("photo");
+
+        photoInput.addEventListener("change", function () {
+            const file = this.files[0];
+
+            if (file && file.size > 10 * 1024 * 1024) {
+                alert("Please choose an image smaller than 10 MB.");
+                this.value = "";
+            }
+        });
+    </script>
+</body>
+</html>
