@@ -1,22 +1,39 @@
-from flask import Flask, render_template, request
-from werkzeug.utils import secure_filename
 import os
 import json
-import requests
 import uuid
+from pathlib import Path
+
+from flask import Flask, render_template, request
+from werkzeug.utils import secure_filename
+from google import genai
+from google.genai import types
 
 app = Flask(__name__)
 
-UPLOAD_FOLDER = "static/uploads"
-ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
-
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
 
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+UPLOAD_FOLDER = Path("static") / "uploads"
+UPLOAD_FOLDER.mkdir(parents=True, exist_ok=True)
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "qwen2.5vl:3b"
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+client = None
+
+
+def get_gemini_client():
+    global client
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+
+    if not api_key:
+        raise RuntimeError(
+            "Gemini API key not found. Set GEMINI_API_KEY in Windows."
+        )
+
+    if client is None:
+        client = genai.Client(api_key=api_key)
+
+    return client
 
 
 def allowed_file(filename):
@@ -28,78 +45,134 @@ def allowed_file(filename):
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template("index.html", result=None, error=None)
 
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    if "photo" not in request.files:
-        return "Please select a photo.", 400
-
-    photo = request.files["photo"]
-
-    if not photo.filename or not allowed_file(photo.filename):
-        return "Please upload a JPG, PNG or WEBP image.", 400
-
-    filename = str(uuid.uuid4()) + "_" + secure_filename(photo.filename)
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
-    photo.save(filepath)
-
-    style = request.form.get("style", "natural")
-    image_path = "/" + filepath.replace("\\", "/")
+    result = None
+    error = None
+    saved_path = None
 
     try:
-        import base64
+        if "photo" not in request.files:
+            raise ValueError("Please choose a photo first.")
 
-        with open(filepath, "rb") as image_file:
-            image_data = base64.b64encode(image_file.read()).decode("utf-8")
+        photo = request.files["photo"]
+        style = request.form.get("style", "aesthetic")
+
+        if not photo or photo.filename == "":
+            raise ValueError("Please choose a photo first.")
+
+        if not allowed_file(photo.filename):
+            raise ValueError(
+                "Please upload a PNG, JPG, JPEG, or WEBP image."
+            )
+
+        image_bytes = photo.read()
+
+        if not image_bytes:
+            raise ValueError("The selected image is empty.")
+
+        if len(image_bytes) > 10 * 1024 * 1024:
+            raise ValueError("Please upload an image smaller than 10 MB.")
+
+        extension = secure_filename(photo.filename).rsplit(".", 1)[1].lower()
+        filename = f"{uuid.uuid4().hex}.{extension}"
+        saved_path = UPLOAD_FOLDER / filename
+        saved_path.write_bytes(image_bytes)
+
+        mime_types = {
+            "png": "image/png",
+            "jpg": "image/jpeg",
+            "jpeg": "image/jpeg",
+            "webp": "image/webp",
+        }
 
         prompt = f"""
-        Analyse the actual image carefully.
-        Write in this style: {style}.
+You are SnapVoice, an Instagram caption assistant.
 
-        Return valid JSON only with these keys:
-        caption: a suitable social media caption
-        hashtags: 5 to 10 relevant hashtags
-        description: a factual description of the visible image
-        mood: the likely mood of the image
-        song: a suitable music genre or song suggestion
+Look carefully at the uploaded photo. Generate content based on
+what is actually visible. Do not invent names, places, or events.
 
-        Do not invent objects or activities that are not visible.
-        If uncertain, be cautious.
-        """
+Preferred caption style: {style}
 
-        response = requests.post(
-            OLLAMA_URL,
-            json={
-                "model": MODEL_NAME,
-                "prompt": prompt,
-                "images": [image_data],
-                "stream": False,
-                "format": "json"
-            },
-            timeout=180
+Return ONLY valid JSON with these exact keys:
+{{
+  "caption": "One engaging Instagram caption",
+  "hashtags": "#RelevantTag #AnotherTag #SnapVoice",
+  "description": "A short description of the photo",
+  "song": "One suitable song suggestion and artist if known",
+  "mood": "A short mood label"
+}}
+
+Keep the caption natural and ready to edit before posting.
+Suggest a song that matches the photo's mood. Do not claim
+the song is currently trending unless you can verify it.
+Do not include Markdown fences around the JSON.
+"""
+
+        ai = get_gemini_client()
+
+        response = ai.models.generate_content(
+            model="gemini-flash-latest",
+            contents=[
+                prompt,
+                types.Part.from_bytes(
+                    data=image_bytes,
+                    mime_type=mime_types[extension],
+                ),
+            ],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.7,
+            ),
         )
-        response.raise_for_status()
 
-        ai_text = response.json()["response"]
-        result = json.loads(ai_text)
-        result["image"] = image_path
+        if not response.text:
+            raise RuntimeError("Gemini returned an empty response.")
 
-    except requests.exceptions.ConnectionError:
-        result = {
-            "error": "AI is not connected. Start Ollama on your laptop and try again."
-        }
-    except requests.exceptions.Timeout:
-        result = {
-            "error": "AI took too long to respond. Please try again."
-        }
-    except (requests.RequestException, ValueError, KeyError):
-        result = {
-            "error": "Could not analyse this photo. Check your AI model and try again."
-        }
+        result = json.loads(response.text)
 
-    return render_template("index.html", result=result)
+        required_keys = [
+            "caption",
+            "hashtags",
+            "description",
+            "song",
+            "mood",
+        ]
+
+        for key in required_keys:
+            if not isinstance(result.get(key), str):
+                raise RuntimeError("Gemini returned an unexpected response.")
+
+        result["image"] = "/" + saved_path.as_posix()
+
+    except ValueError as exc:
+        error = str(exc)
+
+    except Exception as exc:
+        print("SnapVoice error:", repr(exc))
+        error = (
+            "Sorry, caption generation failed. Check your internet, "
+            "Gemini API key, and API access, then try again."
+        )
+
+    return render_template(
+        "index.html",
+        result=result,
+        error=error,
+        **(result or {}),
+    )
+
+
+@app.errorhandler(413)
+def file_too_large(exc):
+    return render_template(
+        "index.html",
+        result=None,
+        error="That file is too large. Please choose an image under 10 MB.",
+    ), 413
 
 
 if __name__ == "__main__":
