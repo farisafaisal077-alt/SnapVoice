@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SnapVoice AI Studio</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-icon">✦</span> SnapVoice</a>
+    <span class="tag">AI PHOTO STUDIO</span>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="eyebrow">YOUR IMAGINATION, IN FOCUS</div>
+      <h1>Turn your ideas into <span>images.</span></h1>
+      <p>Describe the picture you imagine and let AI help bring it to life.</p>
+    </section>
+
+    <section class="studio">
+      <div class="form-panel">
+        <label for="prompt">Describe your image</label>
+        <textarea id="prompt" rows="5" placeholder="Example: A dreamy sunset over a quiet beach, cinematic lighting, vibrant colors..."></textarea>
+        <div class="field-row">
+          <div class="field">
+            <label for="style">Art style</label>
+            <select id="style">
+              <option value="photorealistic">Photorealistic</option>
+              <option value="digital art">Digital art</option>
+              <option value="anime">Anime</option>
+              <option value="watercolor painting">Watercolor</option>
+              <option value="3D render">3D render</option>
+              <option value="minimalist illustration">Minimalist</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="shape">Image shape</label>
+            <select id="shape">
+              <option value="1024x1024">Square</option>
+              <option value="1536x1024">Landscape</option>
+              <option value="1024x1536">Portrait</option>
+            </select>
+          </div>
+        </div>
+        <button id="generateBtn" type="button">✦ Generate image</button>
+        <p class="note">AI generation needs a server and an API key. Never put your API key in this page.</p>
+        <p id="status" class="status" role="status"></p>
+      </div>
+
+      <div class="preview-panel">
+        <div class="preview-heading"><span>PREVIEW</span><span class="live-dot"></span></div>
+        <div id="preview" class="preview">
+          <div class="placeholder-icon">✧</div>
+          <h2>Your creation starts here</h2>
+          <p>Your generated image will appear in this space.</p>
+        </div>
+        <a id="downloadLink" class="download-link hidden" download="snapvoice-image.png">Download image</a>
+      </div>
+    </section>
+    <section class="features-section">
+      <div class="eyebrow">WHAT YOU CAN CREATE</div>
+      <h2 class="features-title">More than a photo editor.</h2>
+      <p class="features-intro">Capture, transform, and share your best ideas with SnapVoice.</p>
+
+      <article class="feature-row">
+        <div class="feature-art portrait-art"><span>✦</span><div class="portrait-silhouette"></div></div>
+        <div class="feature-copy">
+          <h3>01. Professional design</h3>
+          <p>A modern, responsive experience that looks great on both laptops and mobile phones.</p>
+        </div>
+      </article>
+
+      <article class="feature-row">
+        <div class="feature-art camera-art"><div class="camera-frame"><span>●</span><div class="camera-person"></div><b>PORTRAIT&nbsp;&nbsp; PHOTO&nbsp;&nbsp; VIDEO</b></div></div>
+        <div class="feature-copy">
+          <h3>02. Upload or take a live photo</h3>
+          <p>Upload a picture or open your device camera, capture a new photo, and preview it. Switch between front and rear cameras on supported devices.</p>
+          <label class="upload-button" for="photoUpload">Choose a photo</label>
+          <input id="photoUpload" type="file" accept="image/*" class="file-input">
+          <button id="cameraBtn" class="secondary-button" type="button">Open camera</button>
+          <div id="cameraArea" class="camera-area hidden"><video id="cameraVideo" autoplay playsinline></video><button id="captureBtn" type="button">Capture photo</button></div>
+          <canvas id="captureCanvas" class="hidden"></canvas>
+          <img id="photoPreview" class="photo-preview hidden" alt="Selected photo preview">
+        </div>
+      </article>
+
+      <article class="feature-row">
+        <div class="feature-art content-art"><div class="content-paper"><b>Social caption</b><span>✨ A moment worth sharing</span><i>#mood #memories #snapvoice</i></div></div>
+        <div class="feature-copy">
+          <h3>03. AI social media content</h3>
+          <p>Generate a caption, detailed description, hashtags, and a song suggestion matching your photo's mood. Edit and copy your post.</p>
+          <textarea id="socialPrompt" rows="2" placeholder="Describe the photo or its mood..."></textarea>
+          <button id="socialBtn" type="button">Create social post</button>
+          <textarea id="socialOutput" rows="5" placeholder="Your caption and hashtags will appear here..."></textarea>
+          <button id="copySocialBtn" class="secondary-button" type="button">Copy post</button>
+          <p class="note">This starter uses a local template. AI-written captions can be connected to a secure backend later.</p>
+        </div>
+      </article>
+
+      <article class="feature-row">
+        <div class="feature-art makeover-art"><div class="makeover-card"><span>BEFORE</span><span>AFTER</span><div>Style your look</div></div></div>
+        <div class="feature-copy">
+          <h3>04. Hairstyle and dress makeover</h3>
+          <p>Explore style ideas such as soft waves or a ponytail, and outfits such as traditional wear, streetwear, or an evening dress.</p>
+          <label for="makeoverStyle">Choose a makeover idea</label>
+          <select id="makeoverStyle">
+            <option>Soft waves hairstyle</option>
+            <option>Ponytail hairstyle</option>
+            <option>Traditional wear</option>
+            <option>Streetwear outfit</option>
+            <option>Evening dress</option>
+          </select>
+          <button id="makeoverBtn" type="button">Get makeover prompt</button>
+          <textarea id="makeoverOutput" rows="3" placeholder="Your makeover idea will appear here..."></textarea>
+          <p class="note">This creates an idea prompt only; photo transformation needs an image-editing AI service.</p>
+        </div>
+      </article>
+    </section>
+
+    <footer>Made with creativity · SnapVoice AI Studio</footer>
+  </main>
+  <script src="script.js"></script>
+</body>
+</html>
