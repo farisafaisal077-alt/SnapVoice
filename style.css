@@ -144,3 +144,33 @@ button,
     min-height: 260px;
   }
 }
+/* SnapVoice Dark Blue Theme */
+:root {
+  --bg-color: #071426;
+  --card-color: #102A4C;
+  --primary-color: #3B82F6;
+  --text-color: #F1F5F9;
+  --muted-color: #A8B8CC;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+button,
+.btn {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+button:hover,
+.btn:hover {
+  background-color: #2563EB;
+}
+
+.card,
+.feature-card {
+  background-color: var(--card-color);
+  color: var(--text-color);
+}
