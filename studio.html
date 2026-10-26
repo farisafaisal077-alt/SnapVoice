@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Creative Studio | SnapVoice</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .studio-page { max-width: 1000px; margin: auto; padding: 40px 22px; }
+    .studio-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:45px; }
+    .studio-brand { color:#f6f5ff; font-size:22px; font-weight:700; text-decoration:none; }
+    .studio-brand span { color:#b59cff; }
+    .back-link { color:#d0c3ff; text-decoration:none; border:1px solid #39334e; padding:10px 16px; border-radius:30px; }
+    .studio-hero { margin-bottom:35px; }
+    .studio-hero h1 { font-size:clamp(36px,6vw,58px); margin:12px 0; }
+    .studio-hero p { color:#aaa8c0; line-height:1.7; }
+    .studio-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+    .tool-card { background:linear-gradient(145deg,#191827,#11111c); border:1px solid #302d43; border-radius:20px; padding:24px; min-width:0; }
+    .tool-icon { width:44px; height:44px; display:grid; place-items:center; border-radius:13px; background:#2b2143; color:#c4aaff; font-size:22px; margin-bottom:18px; }
+    .tool-card h2 { font-size:21px; margin:0 0 9px; }
+    .tool-card p { color:#aaa8c0; font-size:14px; line-height:1.7; }
+    .tool-card textarea,.tool-card select { width:100%; margin:8px 0; }
+    .tool-card button { margin-top:10px; }
+    .tool-output { min-height:80px; }
+    .studio-footer { display:flex; justify-content:space-between; margin-top:35px; gap:12px; }
+    @media(max-width:650px) {
+      .studio-page { padding:25px 16px; }
+      .studio-grid { grid-template-columns:1fr; }
+      .tool-card { padding:19px; }
+      .studio-nav { margin-bottom:35px; }
+      .studio-footer { flex-direction:column; }
+      .studio-footer a { text-align:center; }
+    }
+  </style>
+</head>
+<body>
+  <main class="studio-page">
+    <nav class="studio-nav">
+      <a class="studio-brand" href="index.html">✦ SnapVoice</a>
+      <a class="back-link" href="index.html">← Back home</a>
+    </nav>
+
+    <header class="studio-hero">
+      <div class="eyebrow">YOUR PERSONAL CREATIVE SPACE</div>
+      <h1>Make something <span>beautiful.</span></h1>
+      <p>Explore your style, find the right words, and create something worth sharing.</p>
+    </header>
+
+    <section class="studio-grid">
+      <article class="tool-card">
+        <div class="tool-icon">✧</div>
+        <h2>Social caption studio</h2>
+        <p>Create a caption, hashtags and a song idea for your next post.</p>
+        <textarea id="captionInput" rows="3" placeholder="Describe your photo or its mood..."></textarea>
+        <button id="captionBtn" type="button">Create my caption</button>
+        <textarea id="captionOutput" class="tool-output" rows="5" placeholder="Your caption will appear here..." readonly></textarea>
+        <button id="copyBtn" type="button">Copy caption</button>
+      </article>
+
+      <article class="tool-card">
+        <div class="tool-icon">♡</div>
+        <h2>Style & makeover ideas</h2>
+        <p>Choose a look and get a detailed prompt to explore your next style.</p>
+        <label for="styleChoice">Choose your style</label>
+        <select id="styleChoice">
+          <option>Soft waves hairstyle</option>
+          <option>Elegant ponytail</option>
+          <option>Traditional outfit</option>
+          <option>Casual streetwear</option>
+          <option>Elegant evening dress</option>
+        </select>
+        <button id="styleBtn" type="button">Explore this look</button>
+        <textarea id="styleOutput" class="tool-output" rows="5" placeholder="Your style prompt will appear here..." readonly></textarea>
+      </article>
+    </section>
+
+    <div class="studio-footer">
+      <a class="back-link" href="index.html">← Previous page</a>
+      <a class="back-link" href="index.html">Back to SnapVoice home ↗</a>
+    </div>
+  </main>
+
+  <script>
+    const captionInput = document.getElementById('captionInput');
+    const captionOutput = document.getElementById('captionOutput');
+
+    document.getElementById('captionBtn').addEventListener('click', () => {
+      const mood = captionInput.value.trim();
+      captionOutput.value = mood
+        ? `${mood}\\n\\nLittle moments, beautiful memories ✨\\n\\n#SnapVoice #PhotoOfTheDay #GoodVibes\\n\\nSong idea: choose a track that matches the mood of your photo.`
+        : 'Please describe your photo or its mood first.';
+    });
+
+    document.getElementById('copyBtn').addEventListener('click', async () => {
+      if (!captionOutput.value.trim()) return;
+      try {
+        await navigator.clipboard.writeText(captionOutput.value);
+        document.getElementById('copyBtn').textContent = 'Copied!';
+      } catch {
+        captionOutput.select();
+        document.execCommand('copy');
+      }
+    });
+
+    document.getElementById('styleBtn').addEventListener('click', () => {
+      const style = document.getElementById('styleChoice').value;
+      document.getElementById('styleOutput').value =
+        `Create a realistic style concept featuring ${style.toLowerCase()}. Use flattering details, natural lighting, refined textures and a polished editorial finish. Preserve the person's identity and natural facial features when editing a reference photo.`;
+    });
+  </script>
+</body>
+</html>
